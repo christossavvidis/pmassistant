@@ -1,0 +1,11 @@
+2025-08-27 15:15:43,365 - [36mDEBUG[0m asyncio - Using selector: KqueueSelector [90m[0m
+2025-08-27 15:15:43,366 - [35mDEV [0m livekit.agents - Watching /Users/christos/startup/agent-starter-python/src [90m[0m
+2025-08-27 15:15:43,840 - [36mDEBUG[0m asyncio - Using selector: KqueueSelector [90m[0m
+2025-08-27 15:15:43,844 - [32mINFO[0m livekit.agents - starting worker [90m{"version": "1.2.6", "rtc-version": "1.0.12"}[0m
+2025-08-27 15:15:43,844 - [32mINFO[0m livekit.agents - starting inference executor [90m[0m
+2025-08-27 15:15:43,847 - [32mINFO[0m livekit.agents - initializing process [90m{"pid": 61906, "inference": true}[0m
+2025-08-27 15:15:44,312 - [36mDEBUG[0m livekit.agents - initializing inference runner [90m{"runner": "lk_end_of_utterance_multilingual", "pid": 61906, "inference": true}[0m
+2025-08-27 15:15:45,703 - [36mDEBUG[0m livekit.agents - inference runner initialized [90m{"runner": "lk_end_of_utterance_multilingual", "elapsed_time": 1.3911520000110613, "pid": 61906, "inference": true}[0m
+2025-08-27 15:15:45,704 - [32mINFO[0m livekit.agents - process initialized [90m{"pid": 61906, "inference": true, "elapsed_time": 1.86}[0m
+2025-08-27 15:15:45,703 - [36mDEBUG[0m asyncio - Using selector: KqueueSelector [90m{"pid": 61906, "inference": true}[0m
+2025-08-27 15:15:47,072 - [32mINFO[0m livekit.agents - registered worker [90m{"id": "AW_CJdgBRDwasQ8", "url": "wss://pmassistant-wt8efuma.livekit.cloud", "region": "UK", "protocol": 16}[0m
