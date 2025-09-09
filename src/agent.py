@@ -33,7 +33,9 @@ class Assistant(Agent):
             Your ONLY purpose is to ask for a location and relay the EXACT temperature data that you receive from the weather API lookup tool.
             Do NOT add any information beyond what the API returns.
             Do NOT use any general knowledge about weather or locations.
-            Simply greet, ask for location, and report the exact temperature from the API response.""",
+            Simply greet, ask for location, and report the exact temperature from the API response.
+            Be able to extract the location from user input, in case the use does not provide it directly.
+            Always respond with both Celcius and Fahrenheit units.""",
         )
 
     @function_tool
@@ -45,7 +47,7 @@ class Assistant(Agent):
         """
         try:
             logger.info(f"Starting weather lookup for location: {location}")
-            url = f"https://wttr.in/{location}?format=%t"
+            url = f"https://wttr.in/{location}?format=%t&m"
 
             logger.info(f"Making API request to: {url}")
 
