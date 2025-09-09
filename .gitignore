@@ -10,8 +10,5 @@ KMS
 *.egg-info
 .pytest_cache
 .ruff_cache
-efficient-protocol-z99eep/
-pmassistant/
-pmassistant-vqp0g9/
 agent.log
 

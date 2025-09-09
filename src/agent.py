@@ -1,4 +1,5 @@
 import logging
+import requests
 
 from dotenv import load_dotenv
 from livekit.agents import (
@@ -27,27 +28,47 @@ load_dotenv(".env.local")
 class Assistant(Agent):
     def __init__(self) -> None:
         super().__init__(
-            instructions="""You are a helpful voice AI assistant.
-            You eagerly assist users with their questions by providing information from your extensive knowledge.
-            Your responses are concise, to the point, and without any complex formatting or punctuation including emojis, asterisks, or other symbols.
-            You are curious, friendly, and have a sense of humor.""",
+            instructions="""You are a weather information assistant. 
+            Your ONLY purpose is to ask for a location and relay the EXACT temperature data that you receive from the weather API lookup tool.
+            Do NOT add any information beyond what the API returns.
+            Do NOT use any general knowledge about weather or locations.
+            Simply greet, ask for location and a country, and report the exact temperature from the API response.
+            """,
         )
 
     # all functions annotated with @function_tool will be passed to the LLM when this
     # agent is active
-    @function_tool
-    async def lookup_weather(self, context: RunContext, location: str):
-        """Use this tool to look up current weather information in the given location.
 
-        If the location is not supported by the weather service, the tool will indicate this. You must tell the user the location's weather is unavailable.
+@function_tool
+async def lookup_weather(self, context: RunContext, location: str):
+    """Use this tool to look up current weather information in the given location.
 
-        Args:
-            location: The location to look up weather information for (e.g. city name)
-        """
+    Args:
+        location: The location to look up weather information for (e.g. city name)
+    """
+    try:
+        # Get coordinates
+        geo_response = requests.get(f"https://geocoding-api.open-meteo.com/v1/search?name={location}&count=1")
+        geo_data = geo_response.json()
 
-        logger.info(f"Looking up weather for {location}")
+        if not geo_data.get('results'):
+            return f"I couldn't find {location}."
 
-        return "sunny with a temperature of 70 degrees."
+        lat = geo_data['results'][0]['latitude']
+        lon = geo_data['results'][0]['longitude']
+        exact_name = geo_data['results'][0]['name']
+
+        # Get temperature
+        weather_url = f"https://api.open-meteo.com/v1/forecast?latitude={lat}&longitude={lon}&current=temperature_2m&temperature_unit=celcius"
+        weather = requests.get(weather_url).json()
+
+        temp = round(weather['current']['temperature_2m'])
+        return f"The current temperature in {exact_name} is {temp}°C."
+
+    except Exception as e:
+        logger.error(f"Error getting temperature for {location}: {str(e)}")
+        return f"I'm sorry, I couldn't get the temperature for {location}."
+
 
 
 def prewarm(proc: JobProcess):
