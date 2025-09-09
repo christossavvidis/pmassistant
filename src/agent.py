@@ -1,5 +1,7 @@
 import logging
 import requests
+import aiohttp
+import asyncio
 
 from dotenv import load_dotenv
 from livekit.agents import (
@@ -24,56 +26,74 @@ logger = logging.getLogger("agent")
 
 load_dotenv(".env.local")
 
-
 class Assistant(Agent):
     def __init__(self) -> None:
         super().__init__(
-            instructions="""You are a weather information assistant. 
+            instructions="""You are a weather information assistant.
             Your ONLY purpose is to ask for a location and relay the EXACT temperature data that you receive from the weather API lookup tool.
             Do NOT add any information beyond what the API returns.
             Do NOT use any general knowledge about weather or locations.
-            Simply greet, ask for location and a country, and report the exact temperature from the API response.
-            """,
+            Simply greet, ask for location, and report the exact temperature from the API response.""",
         )
 
-    # all functions annotated with @function_tool will be passed to the LLM when this
-    # agent is active
+    @function_tool
+    async def lookup_weather(self, context: RunContext, location: str):
+        """Use this tool to look up current weather information in the given location.
 
-@function_tool
-async def lookup_weather(self, context: RunContext, location: str):
-    """Use this tool to look up current weather information in the given location.
+        Args:
+            location: The location to look up weather information for (e.g. city name)
+        """
+        try:
+            logger.info(f"Starting weather lookup for location: {location}")
+            url = f"https://wttr.in/{location}?format=%t"
 
-    Args:
-        location: The location to look up weather information for (e.g. city name)
-    """
-    try:
-        # Get coordinates
-        geo_response = requests.get(f"https://geocoding-api.open-meteo.com/v1/search?name={location}&count=1")
-        geo_data = geo_response.json()
+            logger.info(f"Making API request to: {url}")
 
-        if not geo_data.get('results'):
-            return f"I couldn't find {location}."
+            async with aiohttp.ClientSession() as session:
+                async with session.get(url, timeout=10) as response:
+                    logger.info(f"API response status code: {response.status}")
 
-        lat = geo_data['results'][0]['latitude']
-        lon = geo_data['results'][0]['longitude']
-        exact_name = geo_data['results'][0]['name']
+                    if response.status == 200:
+                        temperature = (await response.text()).strip()
 
-        # Get temperature
-        weather_url = f"https://api.open-meteo.com/v1/forecast?latitude={lat}&longitude={lon}&current=temperature_2m&temperature_unit=celcius"
-        weather = requests.get(weather_url).json()
+                        if not temperature:
+                            logger.error("Empty temperature response received")
+                            return "I'm sorry, I received an empty response from the weather service."
 
-        temp = round(weather['current']['temperature_2m'])
-        return f"The current temperature in {exact_name} is {temp}°C."
+                        logger.info(f"Successfully retrieved temperature: {temperature} for {location}")
+                        return f"The current temperature in {location} is {temperature}."
 
-    except Exception as e:
-        logger.error(f"Error getting temperature for {location}: {str(e)}")
-        return f"I'm sorry, I couldn't get the temperature for {location}."
+                    elif response.status == 404:
+                        logger.error(f"Location not found: {location}")
+                        return f"I'm sorry, I couldn't find the location: {location}"
 
+                    elif response.status == 429:
+                        logger.error("Rate limit exceeded for weather API")
+                        return "I'm sorry, we've exceeded the weather service rate limit. Please try again later."
+
+                    else:
+                        error_msg = f"Failed to get weather data, status code: {response.status}"
+                        logger.error(error_msg)
+                        raise Exception(error_msg)
+
+        except asyncio.TimeoutError:
+            error_msg = f"Timeout while getting weather for {location}"
+            logger.error(error_msg)
+            return "I'm sorry, the weather service is taking too long to respond. Please try again."
+
+        except aiohttp.ClientError as e:
+            error_msg = f"Connection error while getting weather for {location}: {str(e)}"
+            logger.error(error_msg)
+            return "I'm sorry, I couldn't connect to the weather service. It might be down."
+
+        except Exception as e:
+            error_msg = f"Unexpected error getting temperature for {location}: {str(e)}"
+            logger.error(error_msg, exc_info=True)
+            return f"I'm sorry, I couldn't get the temperature for {location} due to an unexpected error."
 
 
 def prewarm(proc: JobProcess):
     proc.userdata["vad"] = silero.VAD.load()
-
 
 async def entrypoint(ctx: JobContext):
     # Logging setup
